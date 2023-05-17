@@ -1,0 +1,276 @@
+We are no longer requiring 'path' as a built in function
+
+    - We are still requiring that the 'path' environment variable to be changed
+
+    - For 'cd', if no argument is passed, the name of the current working directory should be printed. If an argument is passed, the relevant environment variable should be changed
+
+    - For tokens, Pipes and Redirection do not need to be mixed. Background/Current execution should ALWAYS work
+
+            --For example "cat abc.txt | rev &" and "cat abc.txt >> def.txt &" should work correctly
+
+            --However, "cat abc.txt | rev >> def.txt" is not required to work, but it's great if it does!!
+
+            --Note "cat abc.txt >> example.txt | rev < def.txt" cannot work as it does not make sense.
+
+
+
+
+\make a simplified version of bash shell
+
+	parse & tokenize input
+	execute parsed commands
+two modes of operation
+	shell executed w no arguments
+	shell executed with batch file argument
+built in commands & external commands 
+
+
+	takes line from user (ex. ls -la mydir)
+	interprets command and executes
+		ls - find this program
+		-la, mydir - arguments
+		tries to find command in its path,
+		if found a child process is forked
+		and execute
+	list of commands, cd, clr, dir, environ, echo, help, pause, quit
+required use of exec() and fork()
+fork creates copt exactly the same except return from forl is 0 for child
+if fork==0 then do child stuff
+if not do other
+	use wait to make parent wait until child is done **waitpid(pid, &int, WUNTRACED)** //this assumes your calling in a parent process and youre waiting until the child process stops
+	other use of wait parent can keep going but clear child when done
+but if you are running something in the background, you should use
+waitpid(0, &int, WNOHANG)
+
+exec() overwrites execution code parent to child but it is not connected
+execvp(command, array of arguments?) for external commands (fork)
+
+while(1){
+har *cmd = getcmd();
+int retval = fork();
+if (retval ==0)
+	this is child process
+
+< should be implemented to redirect input, read from a file
+	grep "Romeo" <shakespeare.txt
+> output
+	be able to do in and out at same time
+>> concat instead of overwrite
+<command> | <command2> piping, out 1 fed to com2 as input
+use dup2(int oldfd, int newfd);
+overwrites new w file info from old
+use this to overwrite stdout to be from a file
+close(int fd);
+& background execution (exec??)
+	sleep 10 &
+		make note of which wait() to use
+redirection '>' '<' '>>'
+pipe '|' ; background '&'
+open(file, flags) can be combined  together w | in call
+returns file descriptor
+dont use fopen!
+
+steps:
+user input one line at a time
+implement tokenizer, white space delimited tokens
+implement a few of the easier built in commands
+implement a basic parser that will run built ins w given arguments
+	alert user if entered invalid number of arg for built ins
+finish the rest of built in commands
+
+file descriptor pcb tells us what files are open fd.
+
+
+myshell.c:::::::
+int main(int argc, char** argv, char** envp)
+if(arg==1)
+//interactive mode
+else if(arg==2)
+//open batch file in argument
+	if(bat!=NULL)
+	//could not open!
+else
+//error too many args!
+print("Hello, user\n");
+//clear screen?
+
+char *cmd;
+char[][] parsed;
+while(1){
+//prompt user if interactive
+cmd=read_cmd();
+parsed=parse(cmd, parsed);
+redirect(parsed); //execute handled here too
+fflush(stdout);
+fflush(stdin);
+dup2(stdout, stdin);
+}
+
+
+read_parse_redirect_exec.c::::::::
+char *read_cmd(){
+FILE *f; //supposed to use file descriptors ?
+char *cmd;
+if (interactive mode)
+	f =stdin
+else
+	f=batch file
+int size;
+getLine(&cmd, s&ize, f);
+return cmd;
+}
+
+parse(char *cmd, char **parsed){
+for(int i=0; i<?; i++)
+if(parsed[i]==NULL)
+break;
+parsed[i]=cmd until a space  (strtok_r)
+}
+
+void redirect(char **parsed){
+char* file;
+int fd;
+int bg=0;
+for(int i=0; parsed[i]!=NULL; i++)
+//redirect output
+if(strchr(parsed[i], '>'))
+	file=parsed[i]
+	fd = open(file, RDWONLY);
+	dup2(fd, stdout);
+//redirect input
+else if(strchr(parsed[i], '<'))
+	file=parsed[i]
+	fd = open(file, RDWONLY);
+	dup2(fd, stdin);
+//concat out
+else if(strstr(parsed[i], ">>"))
+	file=parsed[i]
+	fd = open(file, doesnt overwrite but concat instead);
+	dup2(fd, stdout);????
+//pipe
+else if(strchr(parsed[i], '|'))
+	pipe_parsed(parsed, i);
+//background
+else if(strchr(parsed[i], '&'))
+	bg==1;
+execute(parsed, bg);
+close(fd);
+}
+
+void execute(char **parsed, bg){
+//create pipe before fork!!
+pid_t pid;
+pid = fork();
+if(pid==0)
+execvp(parsed);
+else
+if(bg==0)
+wait(pid);
+else
+//work in background?
+}
+
+
+pipe.c //implement this last...
+void pipe_parsed(char **parsed, int index){
+char *dst = parsed[index];
+//file descriptor one to read and one to send
+int filedes[2]; //pipe takes  int array of src and dst
+pipe(filedes); //if return -1 then error else fork
+pid_t pid = fork();
+if(pid==0)
+	close(1); //close stdout
+	dup2(filedes[1], 1?);
+	//executes cmd1
+	close(filedes[1])
+	redirect(parsed but until the |, (cmd1) );
+//else FORK AGAIN,,, below, new pid variable??
+
+pid = fork();
+if(pid==0)
+	close(0); //close stdin
+	dup2(filedes[0], 0); //replace stdin w reading end of pipe
+	//executes cmd2
+	close(filedes[0]);
+	redirect(dst);
+//else wait(&pid)??? from parent waiting until done
+
+close(filedes[1]);
+close(filedes[0]);
+int waitstat
+waitpid(0, &waitstat, WNOHANG);
+waitpid(0, &waitstat, WNOHANG);
+???????????????
+}
+
+
+built_in_commands.c:::::
+void cd(args){
+//take 0 or 1 argument, 0 tell where, 1 try to change
+if(args ==0)
+	getcwd();
+else
+	chdir(args);
+
+
+}
+
+void clr(args){
+printf("\e[1;1H\e[2J");
+}
+
+void dir(args){
+//0 or 1 arguments, 0 print cwd, 1 print specified d
+//reuse tuls code!
+struct dirent *dh;
+DIR *d = opendir(args[1]);
+while((dh=readdir(d))!=NULL)
+printf("%s/n", dh->d_name);
+closedir(d);
+}
+
+void environ(char **envp, args){
+//copy env command in the bash shell
+//char **envp
+//	third argument to main, list of environ variables
+getenv(args);
+}
+
+void path(args){
+//change shell environ variable called path
+//ex: path /bin/usr/bin
+setenv(path, args);
+}
+
+//first arg is command maybe make i=1?
+void echo(args){
+for(int i=0; args[i]!=NULL; i++)
+printf("%s", args[i]);
+}
+
+void help(){
+FILE *f = fopen("readme_doc", "r");
+char c;
+while((c=fgetc(f))!=EOF)
+printf("%c", c);
+//can exec(more)filter in bash dont need to implement
+}
+
+//until enter
+void pause_sh(){
+char c;
+while(1)
+c=getchar(stdin);
+if(c==enter?)
+break;
+}
+
+int quit(){
+exit(0);
+}
+
+
+redirect.......
+prog1 arg arg | prog2 arg arg
+process the | and then replace with null character
+that way you can separate each part and manually move pointer past the null to exec the second part

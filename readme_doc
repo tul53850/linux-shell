@@ -1,0 +1,45 @@
+		MYSHELL: {tul53850@temple.edu}
+
+program: myshell [option]
+
+description:
+a simple shell with I/O redirection, and pipes. Shell can be activated with a batch file. To do this, when executing myshell, include a batch file path in the command line.
+
+To use I/O redirection:
+"programname arg1 arg2 < inputfie > outputfile"
+this command line will execute the program with arguments arg1 and arg2, the stdin FILE stream replaced by inputfile and stdout FILE stream replaced by outputfile.
+if the output character is '>', then the outputfile is created or overwritten. if '>>' is used, then outputfile is created or appended.
+
+To use background execution:
+Run your command with an '&' at the end and the shell will not wait for the program before prompting again.
+
+To use pipes:
+"cat out.txt | wc -1"
+the '|' character is used to declare a pipe. In this example, the output of cat is redirected to the input for wc.
+
+
+Contains built-in commands listed below:
+
+cd <argument>
+changes the directory to the argument. If no argument is supplied, it simply displays the current working directory.
+
+clr
+clears the screen.
+
+dir <argument>
+similar to the ls command in linux. lists the contents of a given directory.
+
+environ
+prints environment strings.
+
+echo <argument>
+prints out the arguments sent to this command
+
+help
+prints this document. (utilizes the linux 'more' command)
+
+pause
+Pause operation of the shell until 'Enter' is pressed.
+
+quit
+exits the shell. 'exit(0)'
